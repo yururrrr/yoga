@@ -50,13 +50,13 @@ class CNN_LSTM_frame(nn.Module):
 
         cnn_output = self.cnn_model(x)
         
-        # 將 CNN 輸出轉換為 3D 張量以傳遞給 LSTM（假設每個影片有相同的影格數）
+        # �? CNN 輸�?��???????? 3D 張�??以�?��??�? LSTM�????設�?????影�???????��?????影�?��?��??
         cnn_output = cnn_output.view(x.size(0), -1, 512)
 
-        # LSTM 模型的前向傳播
+        # LSTM 模�?????????????��??
         lstm_output, _ = self.lstm(cnn_output)
 
-        # 取 LSTM 最後一個時間步的輸出
+        # ??? LSTM ???�?�??????????步�??輸�??
         lstm_output = lstm_output[:, -1, :]
 
         # Fully connected layers
@@ -82,13 +82,10 @@ class CNN_LSTM_keypoint(nn.Module):
 
         cnn_output = self.cnn_model(x)
         
-        # 將 CNN 輸出轉換為 3D 張量以傳遞給 LSTM（假設每個影片有相同的影格數）
         cnn_output = cnn_output.view(x.size(0), -1, x.size(2))
 
-        # LSTM 模型的前向傳播
         lstm_output, _ = self.lstm(cnn_output)
 
-        # 取 LSTM 最後一個時間步的輸出
         lstm_output = lstm_output[:, -1, :]
 
         # Fully connected layers
