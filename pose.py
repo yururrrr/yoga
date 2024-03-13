@@ -109,5 +109,5 @@ for label in labels:
                 r_wrist.append(-1)
                 l_wrist.append(-1)
 
-
+        
         print(f'finished {video} in {label}')
