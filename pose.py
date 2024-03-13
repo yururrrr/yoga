@@ -33,18 +33,7 @@ mp_drawing_styles = mp.solutions.drawing_styles
 mp_pose = mp.solutions.pose                     
 
 points = ['L_ankle', 'R_ankle', 'L_knee', 'R_knee', 'L_hip', 'R_hip', 'L_shoulder', 'R_shoulder', 'L_elbow', 'R_elbow', 'L_wrist', 'R_wrist']
-r_ankle = []
-l_ankle = []
-r_knee = []
-l_knee = []
-r_hip = []
-l_hip = []
-r_shoulder = []
-l_shoulder = []
-r_elbow = []
-l_elbow = []
-r_wrist = []
-l_wrist = []
+
 
 home_path = 'C:/Users/VIPLAB/Desktop/yuru/'
 data_path = home_path+'yoga-pose-classification/dataset_mat'
@@ -73,6 +62,21 @@ for label in labels:
     for video in videos:
         video_path = os.path.join(label_path, video)
         frames = os.listdir(video_path)
+        joints = {r_ankle:[], l_ankle:[], r_knee:[], l_knee:[], r_hip:[], l_hip:[],
+                  r_shoulder:[], l_shoulder:[], r_elbow:[], l_elbow:[], r_wrist:[], l_wrist:[]}
+        r_ankle = []
+        l_ankle = []
+        r_knee = []
+        l_knee = []
+        r_hip = []
+        l_hip = []
+        r_shoulder = []
+        l_shoulder = []
+        r_elbow = []
+        l_elbow = []
+        r_wrist = []
+        l_wrist = []
+        
         for frame in frames:
             frame_path = os.path.join(video_path, frame)
             keypoint = detect_keypoints(frame_path)
