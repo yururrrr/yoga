@@ -42,76 +42,76 @@ valid_dataloader = DataLoader(valid_dataset, batch_size=batch_size, shuffle=Fals
 num_classes = len(dataset.labels)
 print(num_classes, dataset.labels_to_index)
 # model = SimpleCNN(num_classes)
-# model = CNN_LSTM_frame(num_classes, cnn_hidden_size, lstm_hidden_size)
+model = CNN_LSTM_frame(num_classes, cnn_hidden_size, lstm_hidden_size)
 
-# # Define loss function and optimizer
-# criterion = nn.CrossEntropyLoss()
-# optimizer = optim.Adam(model.parameters(), lr=0.001)
+# Define loss function and optimizer
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-# # Training loop
-# num_epochs = 50
+# Training loop
+num_epochs = 50
 
-# writer = SummaryWriter('CNN_LSTM_batch32_mat')
+writer = SummaryWriter('CNN_LSTM_batch32_mat')
 
-# for epoch in range(num_epochs):
-#     # training
-#     print('train')
-#     model.train()
-#     running_loss = 0.0
-#     total_train = 0
-#     correct_train = 0
+for epoch in range(num_epochs):
+    # training
+    print('train')
+    model.train()
+    running_loss = 0.0
+    total_train = 0
+    correct_train = 0
     
-#     for batch_idx, (inputs, labels) in enumerate(train_dataloader):
-#         optimizer.zero_grad()
-#         outputs = model(inputs)
-#         loss = criterion(outputs, labels)
-#         loss.backward()
-#         optimizer.step()
-#         running_loss += loss.item()
+    for batch_idx, (inputs, labels) in enumerate(train_dataloader):
+        optimizer.zero_grad()
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+        running_loss += loss.item()
 
-#         _, predicted = outputs.max(1)
-#         total_train += labels.size(0)
-#         correct_train += predicted.eq(labels).sum().item()
+        _, predicted = outputs.max(1)
+        total_train += labels.size(0)
+        correct_train += predicted.eq(labels).sum().item()
 
-#         if batch_idx % 10 == 9:  # Log every 10 batches
-#             writer.add_scalar('Training Loss', running_loss / 10, epoch * len(train_dataloader) + batch_idx)
-#             writer.add_scalar('Training Accuracy', correct_train / total_train, epoch * len(train_dataloader) + batch_idx)
-#             running_loss = 0.0
+        if batch_idx % 10 == 9:  # Log every 10 batches
+            writer.add_scalar('Training Loss', running_loss / 10, epoch * len(train_dataloader) + batch_idx)
+            writer.add_scalar('Training Accuracy', correct_train / total_train, epoch * len(train_dataloader) + batch_idx)
+            running_loss = 0.0
 
-#     # Validation loop
-#     print('valid')
-#     model.eval()
-#     validation_loss = 0.0
-#     correct_val = 0
-#     total_val = 0
+    # Validation loop
+    print('valid')
+    model.eval()
+    validation_loss = 0.0
+    correct_val = 0
+    total_val = 0
 
-#     with torch.no_grad():
-#         for batch_idx, (inputs_val, labels_val) in enumerate(valid_dataloader):
-#             outputs_val = model(inputs_val)
-#             loss_val = criterion(outputs_val, labels_val)
-#             validation_loss += loss_val.item()
+    with torch.no_grad():
+        for batch_idx, (inputs_val, labels_val) in enumerate(valid_dataloader):
+            outputs_val = model(inputs_val)
+            loss_val = criterion(outputs_val, labels_val)
+            validation_loss += loss_val.item()
 
-#             _, predicted_val = outputs_val.max(1)
-#             total_val += labels_val.size(0)
-#             correct_val += predicted_val.eq(labels_val).sum().item()
+            _, predicted_val = outputs_val.max(1)
+            total_val += labels_val.size(0)
+            correct_val += predicted_val.eq(labels_val).sum().item()
 
-#     avg_loss_val = validation_loss / len(valid_dataloader)
-#     accuracy_val = correct_val / total_val
+    avg_loss_val = validation_loss / len(valid_dataloader)
+    accuracy_val = correct_val / total_val
 
-#     writer.add_scalar('Validation Loss', avg_loss_val, (epoch+1)*len(train_dataloader))
-#     writer.add_scalar('Validation Accuracy', accuracy_val, (epoch+1)*len(train_dataloader))
-
-
-
-#     epoch_loss = running_loss / len(train_dataloader)
-#     # writer.add_scalar('Loss/train', epoch_loss)
-#     # print(f"Epoch {epoch + 1}/{num_epochs}, Training Loss: {epoch_loss}")
-
-#     # Validation loop (similar to previous response)
-#     # ...
+    writer.add_scalar('Validation Loss', avg_loss_val, (epoch+1)*len(train_dataloader))
+    writer.add_scalar('Validation Accuracy', accuracy_val, (epoch+1)*len(train_dataloader))
 
 
-# torch.save(model.state_dict(), model_path)
-# writer.close()
 
-# print("Training finished")
+    epoch_loss = running_loss / len(train_dataloader)
+    # writer.add_scalar('Loss/train', epoch_loss)
+    # print(f"Epoch {epoch + 1}/{num_epochs}, Training Loss: {epoch_loss}")
+
+    # Validation loop (similar to previous response)
+    # ...
+
+
+torch.save(model.state_dict(), model_path)
+writer.close()
+
+print("Training finished")

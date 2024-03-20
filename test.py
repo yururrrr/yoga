@@ -1,10 +1,12 @@
 import cv2
 import numpy as np
 import torch
-from torchvision.transforms import ToTensor
+from torchvision.transforms import transforms
 from torch.utils.data import DataLoader
 from models import CNN_LSTM_frame
+import time
 # import mediapipe as mp
+labels=['downward facing dog', 'four-limbed staff pose', 'half standing forward bend', 'mountain pose', 'plank', 'raised hands pose', 'standing forward bend', 'upward facing dog']
 
 # num_classes = 8
 # cnn_hidden_size = 512
@@ -13,9 +15,9 @@ CNN_model = CNN_LSTM_frame(num_classes=8, cnn_hidden_size=512, lstm_hidden_size=
 CNN_model.load_state_dict(torch.load('model/CNN_LSTM_mat.pt'))
 CNN_model.eval()
 
-video_name = ['test3_mat']
+video_name = ['1_left_front']
 home_path = 'C:/Users/VIPLAB/Desktop/yuru/'
-video_path = home_path+'VIDEO/test3_mat.mp4'
+video_path = home_path+'RVM_output/1_left_front.mp4'
 
 cap = cv2.VideoCapture(video_path)
 
@@ -28,52 +30,41 @@ min_frame_threshlod = 30
 def all_same(sequence):
     return all(x == sequence[0] for x in sequence)
 
-from dataset import VideoReader, VideoWriter
-reader = VideoReader(video_path, transform=ToTensor())
-writer = VideoWriter(f'{home_path}output/predicted_{video_name[0]}.mp4', frame_rate=30)
+width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+out = cv2.VideoWriter(f'{home_path}/output/{video_name[0]}_test.mp4', fourcc, 30, (width, height))
 
-with torch.no_grad():
-    for src in DataLoader(reader):
-        output = CNN_model(src)
-        _, predict = torch.max(output, 1)
+start = time.time()
+
+while(cap.isOpened()):
+    ret, frame = cap.read()
+    if not ret:
+        print('Ignore empty camera frame.')
+        break
+    tensor_frame = transforms.ToTensor()(frame).unsqueeze(0)
+    with torch.no_grad():
+        output = CNN_model(tensor_frame)
+        _, predict = output.max(1)
         predicted_pose = predict.item()
         
-        frame_count += 1
-        pose_sequence.append(predicted_pose)
-        
-        if len(pose_sequence) >= min_frame_threshlod:
-            if all_same(pose_sequence):
-                # src to numpy
-                src_numpy = src.squeeze().permute(1, 2, 0).numpy()
-                src_mat = cv2.UMat(src_numpy)
-                
-                text = str(predicted_pose)
-                cv2.putText(src_mat, text, (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
-                
-                writer.write(src_mat)
-                pose_sequence = []
-#         
-# while(cap.isOpened()):
-#     ret, frame = cap.read()
-#     if not ret:
-#         print('Ignore empty camera frame.')
-#         break
-#     tensor_frame = transforms.ToTensor()(frame).unsqueeze(0)
-#     with torch.no_grad():
-#         output = model(tensor_frame)
-#         _, predict = torch.max(output, 1)
-#         predicted_pose = predict.item()
-        
-#     frame_count += 1
-#     pose_sequence.append(predicted_pose)
+    # frame_count += 1
+    # pose_sequence.append(predicted_pose)
     
-#     if start_time is None:
-#         start_time = cap.get(cv2.CAP_PROP_POS_MSEC)
-#     else:
-#         current_time = cap.get(cv2.CAP_PROP_POS_MSEC)
-#         time_difference = current_time - start_time 
-#         if time_difference >= min_time_threshold:
-#             if len(pose_sequence) >= min_frame_threshlod:
-#                 if all_same(pose_sequence):
-#                     cv2.putText(frame, str(predicted_pose), (50, 50) ,
-#                                 cv2.FONT_HERSHEY_SIMPLEX , 1, (255, 0, 0), 2)
+    # if start_time is None:
+    #     start_time = cap.get(cv2.CAP_PROP_POS_MSEC)
+    # else:
+    #     current_time = cap.get(cv2.CAP_PROP_POS_MSEC)
+    #     time_difference = current_time - start_time 
+    #     if time_difference >= min_time_threshold:
+    #         if len(pose_sequence) >= min_frame_threshlod:
+    #             if all_same(pose_sequence):
+    cv2.putText(frame, str(labels[predicted_pose]), (50, 50) ,
+        cv2.FONT_HERSHEY_SIMPLEX , 1, (255, 0, 0), 2)
+    out.write(frame)
+    
+out.release()
+
+end = time.time()
+execution = end-start
+print('Execution time:',execution, 's')

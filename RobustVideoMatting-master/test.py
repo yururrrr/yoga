@@ -37,16 +37,18 @@ def add_text_to_frame(frame, text, position):
 def all_same(sequence):
     return all(x == sequence[0] for x in sequence)
 
-CNN_model = CNN_LSTM_frame(num_classes=8, cnn_hidden_size=512, lstm_hidden_size=256)
-CNN_model.load_state_dict(torch.load('model/CNN_LSTM_mat.pt'))
-CNN_model.eval()
-CNN_model.cuda()
-min_frame_threshlod = 30
 
 
 # video_name = ['test3_mat']
 home_path = 'C:/Users/VIPLAB/Desktop/yuru/'
 video_path = home_path+'VIDEO/test3_mat.mp4'
+
+
+CNN_model = CNN_LSTM_frame(num_classes=8, cnn_hidden_size=512, lstm_hidden_size=256)
+CNN_model.load_state_dict(torch.load(home_path+'model/CNN_LSTM_mat.pt'))
+CNN_model.eval()
+CNN_model.cuda()
+min_frame_threshlod = 30
 
 # for i in VideoDataset(root_dir=home_path, transform=None):
 # videos = ['1_front', '1_left_front', '1_side', '2_front', '2_left_front', '2_side', '3_front', '3_left_front', '3_side', '4_front', '4_left_front', '4_right_front',
@@ -55,7 +57,7 @@ videos = ['1_left_front']
 start_time = time.time()
 
 for i in range(len(videos)):
-    reader = VideoReader('C:/Users/VIPLAB/Desktop/yuru/VIDEO/'+videos[i]+'.mp4', transform=ToTensor())
+    reader = VideoReader('C:/Users/VIPLAB/Desktop/yuru/RVM_output/'+videos[i]+'.mp4', transform=ToTensor())
     writer = VideoWriter(home_path+'output/predicted_'+videos[i]+'_mat.mp4', frame_rate=30)
 
     bgr = torch.tensor([.47, 1, .6]).view(3, 1, 1).cuda()  # Green background.
@@ -68,12 +70,17 @@ for i in range(len(videos)):
         for src in DataLoader(reader):     
             # print(len(src))
             # RGB tensor normalized to 0 ~ 1.
-            fgr, pha, *rec = model(src.cuda(), *rec, downsample_ratio)  # Cycle the recurrent states.
-            com = fgr * pha + bgr * (1 - pha)              # Composite to green background. 
+            # fgr, pha, *rec = model(src.cuda(), *rec, downsample_ratio)  # Cycle the recurrent states.
+            # com = fgr * pha + bgr * (1 - pha)              # Composite to green background. 
             
-            output = CNN_model(com.cuda())
+            output = CNN_model(src.cuda())
             _, predicted = torch.max(output, 1)
             predicted_pose = predicted.item()
+            # print(_, predicted)
+            print('Class' + str(i) for i in range(output.size(1)))
+            for prob in output:
+                print(prob)
+            break
             
             pose_sequence.append(predicted_pose)
             if len(pose_sequence) >= min_frame_threshlod:
