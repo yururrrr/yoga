@@ -33,14 +33,6 @@ class VideoDataset(Dataset):
         frame_path, label = self.samples[idx]
         image = Image.open(frame_path).convert('RGB')
 
-        # mp_pose = mp.solutions.pose
-        # pose = mp_pose.Pose()
-        # results = pose.process(image)
-        # keypoints = []
-        # if results.pose_landmarks:
-        #     for landmark in results.pose_landmark.landmark:
-        #         keypoints.append((landmark.x, landmark.y, landmark.z))
-
         if self.transform:
             image = self.transform(image)
 

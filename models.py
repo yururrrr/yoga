@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, resnet34, resnet50
 
 class SimpleCNN(nn.Module):
     def __init__(self, num_classes):
@@ -31,10 +31,26 @@ class SimpleCNN(nn.Module):
         return x
     
 class CNN_LSTM_frame(nn.Module):
-    def __init__(self, num_classes, cnn_hidden_size, lstm_hidden_size):
+    def __init__(self, num_classes, cnn_hidden_size, lstm_hidden_size, net):
         super(CNN_LSTM_frame, self).__init__()
 
-        self.cnn_model = resnet18(pretrained=True)
+        if net=='resnet18':
+            self.cnn_model = resnet18(pretrained=True)
+        elif net=='resnet34':
+            self.cnn_model = resnet34(pretrained=True)
+        elif net=='resnet50':
+            self.cnn_model = resnet50(pretrained=True)
+
+        
+        # delete full-connected layer in CNN
+        self.cnn_model.fc = nn.Identity()
+
+        # add LSTM
+        self.lstm = nn.LSTM(input_size=512, hidden_size=lstm_hidden_size, batch_first=True)
+
+        # Fully connected layers
+        self.fc1 = nn.Linear(lstm_hidden_size, 512)
+        self.fc2 = nn.Linear(512, num_classes)
         
         # delete full-connected layer in CNN
         self.cnn_model.fc = nn.Identity()
@@ -50,13 +66,10 @@ class CNN_LSTM_frame(nn.Module):
 
         cnn_output = self.cnn_model(x)
         
-        # å°? CNN è¼¸å?ºè???????? 3D å¼µé??ä»¥å?³é??çµ? LSTMï¼????è¨­æ?????å½±ç???????¸å?????å½±æ?¼æ?¸ï??
         cnn_output = cnn_output.view(x.size(0), -1, 512)
 
-        # LSTM æ¨¡å?????????????³æ??
         lstm_output, _ = self.lstm(cnn_output)
 
-        # ??? LSTM ???å¾?ä¸??????????æ­¥ç??è¼¸å??
         lstm_output = lstm_output[:, -1, :]
 
         # Fully connected layers

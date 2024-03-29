@@ -16,10 +16,10 @@ def check_dir(path):
     return path
 
 HOME_PATH = 'C:/Users/VIPLAB/Desktop/yuru/'
-video_path = HOME_PATH+'RobustVideoMatting-master/RobustVideoMatting-master/output/'
+video_path = HOME_PATH+'VIDEO/crop/'#'RobustVideoMatting-master/RobustVideoMatting-master/output/'
 data_path = HOME_PATH+'yoga-pose-classification/'
 
-OUT_PATH = check_dir(data_path + 'dataset_mat/')
+OUT_PATH = check_dir(data_path + 'dataset_crop/')
 
 for la in labels: check_dir(OUT_PATH+la)
 
