@@ -2,6 +2,10 @@
 
 import torch
 from torch.utils.data import random_split
+import os
+from PIL import Image
+import matplotlib.pyplot as plt
+import numpy as np
 # class to test and train
 def to_indices(dataset):
     class_to_indices = {}
@@ -27,3 +31,56 @@ def train_test_split(dataset, ratio):
         test_samples.extend(test)
     # print(test_samples[:10])
     return train_samples, test_samples
+
+
+def test_model(model, test_dataloader, criterion):
+    model.eval()
+    test_loss = 0.0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for inputs, labels in test_dataloader:
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            test_loss += loss.item()
+
+            _, predicted = outputs.max(1)
+            total += labels.size(0)
+            correct += predicted.eq(labels).sum().item()
+
+    avg_loss = test_loss / len(test_dataloader)
+    accuracy = correct / total
+
+    print('Test Loss: {:.4f}, Accuracy: {:.2f}%'.format(avg_loss, accuracy * 100))
+
+def visualize_test_results(model, test_dataloader, save_dir):
+    model.eval()
+
+    # Ensure save directory exists
+    os.makedirs(save_dir, exist_ok=True)
+
+    with torch.no_grad():
+        for idx, (inputs, labels, image_paths) in enumerate(test_dataloader):
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+
+            for i in range(inputs.size(0)):
+                # Load the original image
+                image_path = image_paths[i]
+                original_image = Image.open(image_path)
+                original_image = np.array(original_image)
+
+                # Get the predicted label
+                predicted_label = predicted[i].item()
+
+                # Plot the original image with predicted label
+                plt.figure()
+                plt.imshow(original_image)
+                plt.title(f'Predicted Label: {predicted_label}')
+                plt.axis('off')
+
+                # Save the image with prediction
+                save_path = os.path.join(save_dir, f'test_{idx}_{i}.png')
+                plt.savefig(save_path)
+                plt.close()

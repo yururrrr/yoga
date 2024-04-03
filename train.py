@@ -6,8 +6,8 @@ import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import VideoDataset
-from models import SimpleCNN, CNN_LSTM_frame
-from _tool import train_test_split, to_indices
+from models import CNN_LSTM_frame
+from _tool import  to_indices, test_model, visualize_test_results
 
 height, width = 112, 112
 batch_size = 32
@@ -16,7 +16,7 @@ cnn_hidden_size = 512
 lstm_hidden_size = 256
 home_path = 'C:/Users/VIPLAB/Desktop/yuru/'
 data_path = home_path + 'yoga-pose-classification/dataset_crop'
-model_path = './model/CNN_LSTM_batch32_crop.pt'
+# model_path = './model/CNN_LSTM_batch32_crop.pt'
 
 torch.manual_seed(42)
 labels=['downward facing dog', 'four-limbed staff pose', 'half standing forward bend', 'mountain pose', 'plank', 'raised hands pose', 'standing forward bend', 'upward facing dog']
@@ -36,13 +36,12 @@ split_ratio = 0.8  #80% for training, 20% for valid
 train_size = int(len(dataset) * split_ratio)
 valid_size = len(dataset) - train_size
 train_dataset, valid_dataset = random_split(dataset, [train_size, valid_size])
-# train_samples, valid_samples = train_test_split(dataset, split_ratio)
-# train_dataset = VideoDataset(root_dir=data_path, transform=None)
-# train_dataset.samples = train_samples
 
-# valid_dataset = VideoDataset(root_dir=data_path, transform=None)
-# valid_dataset.samples = valid_samples
-print(len(train_dataset), len(valid_dataset))
+train_size = int(len(train_dataset) * 0.9)
+test_size = len(train_dataset) - train_size
+train_dataset, test_dataset = random_split(train_dataset, [train_size, test_size])
+
+print(len(train_dataset), len(valid_dataset), len(test_dataset))
 # Create DataLoader for training and validation
 batches = [64]#[32, 64, 128]
 for batch in batches:
@@ -124,4 +123,12 @@ for batch in batches:
         writer.close()
 
         print("Training finished ", net)
+
+    test_dataloader = DataLoader(test_dataset, batch_size=batch, shuffle=False)
+    save_dir = './test_results'
+
+    # Test the model and save results
+    visualize_test_results(model, test_dataloader, save_dir)
+    # criterion = nn.CrossEntropyLoss()
+    # test_model(model, test_dataloader, criterion)
     
