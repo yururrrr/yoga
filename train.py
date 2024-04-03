@@ -44,7 +44,7 @@ train_dataset, valid_dataset = random_split(dataset, [train_size, valid_size])
 # valid_dataset.samples = valid_samples
 print(len(train_dataset), len(valid_dataset))
 # Create DataLoader for training and validation
-batches = [32, 64, 128]
+batches = [64]#[32, 64, 128]
 for batch in batches:
     train_dataloader = DataLoader(train_dataset, batch_size=batch, shuffle=False)
     valid_dataloader = DataLoader(valid_dataset, batch_size=batch, shuffle=False)
@@ -53,7 +53,7 @@ for batch in batches:
     num_classes = len(dataset.labels)
     # print(num_classes, dataset.labels_to_index)
     # model = SimpleCNN(num_classes)
-    nets= ['resnet18', 'resnet34', 'resnet50']
+    nets= ['resnet50']#['resnet18', 'resnet34', 'resnet50']
     for net in nets:
         model = CNN_LSTM_frame(num_classes, cnn_hidden_size, lstm_hidden_size, net)
 
@@ -119,7 +119,7 @@ for batch in batches:
             epoch_loss = running_loss / len(train_dataloader)
 
 
-        model_path = './model/{net}_LSTM_batch{batch}_crop.pt'
+        model_path = f'./model/{net}_LSTM_batch{batch}_crop.pt'
         torch.save(model.state_dict(), model_path)
         writer.close()
 
