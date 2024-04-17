@@ -124,11 +124,11 @@ for batch in batches:
 
         print("Training finished ", net)
 
-    test_dataloader = DataLoader(test_dataset, batch_size=batch, shuffle=False)
-    save_dir = './test_results'
+    # test_dataloader = DataLoader(test_dataset, batch_size=batch, shuffle=False)
+    # save_dir = './test_results'
 
-    # Test the model and save results
-    visualize_test_results(model, test_dataloader, save_dir)
+    # # Test the model and save results
+    # visualize_test_results(model, test_dataloader, save_dir)
     # criterion = nn.CrossEntropyLoss()
     # test_model(model, test_dataloader, criterion)
     

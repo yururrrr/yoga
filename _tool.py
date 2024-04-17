@@ -6,6 +6,7 @@ import os
 from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
+import torch.nn as nn
 # class to test and train
 def to_indices(dataset):
     class_to_indices = {}
@@ -61,26 +62,40 @@ def visualize_test_results(model, test_dataloader, save_dir):
     os.makedirs(save_dir, exist_ok=True)
 
     with torch.no_grad():
-        for idx, (inputs, labels, image_paths) in enumerate(test_dataloader):
+        test_loss = 0.0
+        correct_val = 0
+        total_val = 0
+        criterion = nn.CrossEntropyLoss()
+        for idx, (inputs, labels) in enumerate(test_dataloader):
             outputs = model(inputs)
             _, predicted = outputs.max(1)
+            loss_val = criterion(outputs, labels)
+            
+            # print(f'input={inputs}, output={outputs}, loss_val={loss_val}')
+            
+            test_loss += loss_val.item()
+            total_val += labels.size(0)
+            correct_val += predicted.eq(labels).sum().item()
 
-            for i in range(inputs.size(0)):
-                # Load the original image
-                image_path = image_paths[i]
-                original_image = Image.open(image_path)
-                original_image = np.array(original_image)
+    avg_loss_val = test_loss / len(test_dataloader)
+    accuracy_val = correct_val / total_val
+    print(f'ave_loss={avg_loss_val}, accuracy_val={accuracy_val}')
+            # for i in range(inputs.size(0)):
+            #     # Load the original image
+            #     # image_path = image_paths[i]
+            #     # original_image = Image.open(image_path)
+            #     original_image = np.array(inputs[i])
 
-                # Get the predicted label
-                predicted_label = predicted[i].item()
+            #     # Get the predicted label
+            #     predicted_label = predicted[i].item()
 
-                # Plot the original image with predicted label
-                plt.figure()
-                plt.imshow(original_image)
-                plt.title(f'Predicted Label: {predicted_label}')
-                plt.axis('off')
+            #     # Plot the original image with predicted label
+            #     plt.figure()
+            #     plt.imshow(original_image)
+            #     plt.title(f'Predicted Label: {predicted_label}')
+            #     plt.axis('off')
 
-                # Save the image with prediction
-                save_path = os.path.join(save_dir, f'test_{idx}_{i}.png')
-                plt.savefig(save_path)
-                plt.close()
+            #     # Save the image with prediction
+            #     save_path = os.path.join(save_dir, f'test_{idx}_{i}.png')
+            #     plt.savefig(save_path)
+            #     plt.close()
