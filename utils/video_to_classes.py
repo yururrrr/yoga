@@ -24,6 +24,7 @@ OUT_PATH = check_dir(data_path + 'dataset_crop/')
 for la in labels: check_dir(OUT_PATH+la)
 
 df = pd.read_excel(data_path+'movement_frames_info.xlsx', sheet_name='train')
+    
 
 # video = videos[1]
 v_num = 0
@@ -78,3 +79,5 @@ for video in videos:
             break
         
     cap.release()
+    
+    

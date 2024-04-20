@@ -7,7 +7,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from dataset import VideoDataset
 from models import CNN_LSTM_frame
-from _tool import  to_indices, test_model, visualize_test_results
+from utils._tool import  to_indices, visualize_test_results
 
 height, width = 112, 112
 batch_size = 32

@@ -5,7 +5,7 @@ from torchvision.transforms import transforms
 from torch.utils.data import DataLoader, random_split
 from models import CNN_LSTM_frame
 from dataset import VideoDataset
-from _tool import  to_indices, test_model, visualize_test_results
+from utils._tool import  to_indices, visualize_test_results
 import time
 # import mediapipe as mp
 
@@ -44,7 +44,7 @@ model.load_state_dict(torch.load('model/resnet50_LSTM_batch64_crop.pt'))
 
 
 test_dataloader = DataLoader(test_dataset, batch_size=64, shuffle=False)
-save_dir = './test_results'
+save_dir = home_path+'test_results'
 
 # Test the model and save results
 visualize_test_results(model, test_dataloader, save_dir)
