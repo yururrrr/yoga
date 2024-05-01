@@ -6,15 +6,17 @@ import argparse
 import os
 import pandas as pd
 import time
-# from utils._tool import crop
+import mediapipe as mp
+import numpy as np
+from utils._tool import video_info
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
+device = "cpu"
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_path', type=str, help='video folder path')
     parser.add_argument('--save_path', type=str, help='save folder path')
-
+    parser.add_argument('--model', type=str, default='fasterrcnn_resnet50_fpn', help='model name')
     return parser.parse_args()
 
 # Preprocess input image
@@ -36,23 +38,55 @@ def detect_objects(model, frame):
 
     return predictions
 
+
+def mediapipe_results(results):
+    predictions = []
+    x, y = [], []
+    if results.pose_landmarks:
+        for landmark in results.pose_landmarks.landmark:
+            x.append(landmark.x)
+            y.append(landmark.y)
+
+        maxx = max(x)
+        minx = min(x)
+        maxy = max(y)
+        miny = min(y)
+        predictions.append([minx, miny, maxx, maxy])
+        # print(predictions)
+    return predictions
+
 # Visualize results
-def visualize_result(frame, predictions):
-    max_area = 0
-    min_x = 2000
-    selected_box = 0
-    max_width = 640
+global max_area, selected_box, prevx, prevy
+
+def visualize_result(frame, predictions, model_name):
+
+    global max_area, selected_box, prevx, prevy
     
-    for box, label, score in zip(predictions[0]['boxes'], predictions[0]['labels'], predictions[0]['scores']):
-        xmin, ymin, xmax, ymax = box.tolist()  # Convert tensor to list
-        xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)  # Convert to integers
-        cen_x = xmax-xmin
-        if label.item() == 1 and score.item() > 0.5:  # Filter for 'person' class
+    if model_name == 'fasterrcnn_resnet50_fpn':
+        for box, label, score in zip(predictions[0]['boxes'], predictions[0]['labels'], predictions[0]['scores']):
+            xmin, ymin, xmax, ymax = box.tolist()  # Convert tensor to list
+            xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)  # Convert to integers
+            prevx = (xmin + xmax) // 2
+            prevy = (ymin + ymax) // 2
+
+            if label.item() == 1 and score.item() > 0.5:  # Filter for 'person' class
+                area = (xmax - xmin)*(ymax - ymin)
+                if area > max_area:
+                    max_area = area
+                    selected_box = (xmin, ymin, xmax, ymax)
+
+    elif model_name =='mediapipe':
+        for box in predictions:
+            xmin, ymin, xmax, ymax = box
+            # xmin, ymin, xmax, ymax = int(xmin), int(ymin), int(xmax), int(ymax)  # Convert to integers
+            # # prevx = (xmin + xmax) // 2
+            # # prevy = (ymin + ymax) // 2
+            
             area = (xmax - xmin)*(ymax - ymin)
-            if area > max_area and xmin < min_x:
+            if area > max_area:
                 max_area = area
-                min_x = xmin
                 selected_box = (xmin, ymin, xmax, ymax)
+
 
     square_x1, square_y1, square_x2, square_y2 = 0, 0, 0, 0
     if selected_box:
@@ -61,12 +95,17 @@ def visualize_result(frame, predictions):
         width = xmax - xmin
         height = ymax - ymin
         max_dim = max(width, height)
+        
         center_x = xmin + width // 2
         center_y = ymin + height // 2
-        square_x1 = center_x - max_dim // 2 - max_dim // 4
-        square_y1 = center_y - max_dim // 2 - max_dim // 4
-        square_x2 = square_x1 + max_dim + max_dim // 2
-        square_y2 = square_y1 + max_dim + max_dim // 2
+
+        # if abs(prevx-center_x) >50 :center_x = prevx
+        # if abs(prevy-center_y) >50 :center_y = prevy
+        
+        square_x1 = center_x - max_dim // 2 - max_dim // 3
+        square_y1 = center_y - max_dim // 2 - max_dim // 3
+        square_x2 = center_x + max_dim // 2 + max_dim //3
+        square_y2 = center_y + max_dim // 2 + max_dim //3
 
         frame = cv2.rectangle(frame, (square_x1, square_y1), (square_x2, square_y2), (0, 255, 0), 2)
         
@@ -109,11 +148,22 @@ def main():
     
     df = pd.read_excel(home_path+'yoga-pose-classification/movement_frames_info.xlsx', sheet_name='train')
     
-    v_num = 0
     start_time = time.time()
-    model = fasterrcnn_resnet50_fpn(pretrained=True).to(device)
-    model.eval()  # Set the model to evaluation mode
+    if args.model == 'fasterrcnn_resnet50_fpn':
+        model = fasterrcnn_resnet50_fpn(pretrained=True).to(device)
+        model.eval()  # Set the model to evaluation mode
+    elif args.model == 'mediapipe':
+        model = mp.solutions.pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+    else:
+        print(f"Error: Invalid model name {args.model}")
+        return
+
+    
+    global max_area, selected_box, prevx, prevy
+    v_num = 0
     for video_file in video_files:
+        max_area, prevx, prevy = 0
+        selected_box = None 
         cap = cv2.VideoCapture(os.path.join(data_path, video_file))
         if not cap.isOpened():
             print(f"Error: Could not open video {video_file}")
@@ -123,23 +173,39 @@ def main():
         rows = df.loc[df['VIDEO_name'] == video_name]
         rows.reset_index(drop=True)
         
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fps, width, height = video_info(cap)
         out = cv2.VideoWriter(os.path.join(save_path, video_file), cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
    
         # Process each frame of the video
         frame_count = 0
+        
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
+                print("Ignoring empty camera frame.")
                 break
-            # if frame_count % 15 != 0:
-            #     continue
+
             # Perform object detection on the frame
             if frame_count % 15 == 0:
-                predictions = detect_objects(model, frame)
-            frame_with_boxes, box = visualize_result(frame, predictions)
+
+                if args.model == 'fasterrcnn_resnet50_fpn':
+                    predictions = detect_objects(model, frame)
+                
+                elif args.model =='mediapipe':
+                    results = model.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+                    predictions = mediapipe_results(results)
+                    if predictions == []:
+                        print('no pose detected')
+                        continue
+                    predictions[0][0] = predictions[0][0]*width
+                    predictions[0][1] = predictions[0][1]*height
+                    predictions[0][2] = predictions[0][2]*width
+                    predictions[0][3] = predictions[0][3]*height
+
+            if predictions is None: continue
+
+            # Visualize the results
+            frame_with_boxes, box = visualize_result(frame, predictions, args.model)
             
             # svae the cropped frame
             # if box is not None:  # Check if frame_with_boxes is not None

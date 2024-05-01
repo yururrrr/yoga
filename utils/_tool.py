@@ -7,6 +7,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
+import cv2
 # class to test and train
 def to_indices(dataset):
     class_to_indices = {}
@@ -31,6 +32,14 @@ def train_test_split(dataset, ratio):
         test_samples.extend(test)
     # print(test_samples[:10])
     return train_samples, test_samples
+
+def video_info(cap):
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    return fps, width, height
+
+
 
 
 def visualize_test_results(model, test_dataloader, save_dir):
