@@ -12,8 +12,8 @@ from scipy.signal import savgol_filter
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, help='video folder path')
-    parser.add_argument('--save_path', type=str, help='save folder path')
+    parser.add_argument('--data_path', default='VIDEO' , type=str, help='video folder path')
+    parser.add_argument('--save_path', default='yoga-pose-classification/mp_dataset',  type=str, help='save folder path')
 
     return parser.parse_args()
 
@@ -49,22 +49,25 @@ def plot_points(data, point, path, rows):
     plt.figure(figsize=(30,15), dpi=100, linewidth = 8)
     y_smooth = savgol_filter(data, 30, 2)
     
+    # print(point)
     plt.plot(data, alpha=0.2, color='b')
     plt.plot(y_smooth, color='b')
     plt.xlabel('time')
     plt.ylabel('Position')
     plt.title(point, fontsize=30)
+    # print(len(rows))
 
     # print(' not in loop')
+    # print(rows)
     for i in range(len(rows)):
-        # print('in loop')
+        # print(rows.loc[i, 'Pose'])
         pose = rows.loc[i, 'Pose']
         start = rows.loc[i, 'start']
         end = rows.loc[i, 'end']
         # print('in row')
         plt.axvline(x=start, ls='--') #start
 
-        plt.axvline(x=end, ls='--') #start
+        plt.axvline(x=end, ls='--') #end
         plt.text(start, -1, f'Pose{pose}',fontsize=20)
 
     plt.savefig(f'{path}/{point}.png')
@@ -103,7 +106,7 @@ def main():
 
         video_name = os.path.splitext(video)[0]
         rows = df.loc[df['VIDEO_name'] == video_name]
-        rows.reset_index(drop=True)
+        rows.reset_index(drop=True, inplace=True)
 
         points_info = {'R_ankle':[], 'L_ankle': [], 'R_knee': [], 'L_knee': [], 'R_hip': [], 'L_hip': [],
                         'R_shoulder': [], 'L_shoulder': [], 'R_elbow': [], 'L_elbow': [], 'R_wrist': [], 'L_wrist': []}

@@ -3,19 +3,19 @@ import numpy as np
 import os
 import pandas as pd
 
-videos = [ '1_front', '1_left_front', '1_side', '2_front', '2_left_front', '2_side', '3_front', '3_left_front', '3_side', '4_front', '4_left_front', '4_right_front', '5_front', '5_left_front', '5_right_front']
+videos = [ '1_front', '1_side', '1_left_front', '2_front', '2_left_front', '2_side', '3_front', '3_left_front', '3_side', '4_front', '4_left_front', '4_right_front', '5_front', '5_left_front', '5_right_front']
 # videos = [ '2_front', '2_left_front','3_front', '3_left_front', '3_side','5_front', '5_left_front', '5_right_front']
 
 # '1_front', '1_left_front', '1_side', 
 # videos = ['test5']
-labels=['downward facing dog', 'four-limbed staff pose', 'half standing forward bend', 'mountain pose', 'plank', 'raised hands pose', 'standing forward bend', 'upward facing dog']
+labels = ['1.mountain pose', '2.raised hands pose', '3.standing forward bend', '4.half standing forward bend', '5.plank', '6.four-limbed staff pose', '7.upward facing dog', '8.downward facing dog']
 
 def check_dir(path):
     if not os.path.exists(path):
         os.makedirs(path)
     return path
 
-HOME_PATH = 'C:/Users/VIPLAB/Desktop/yuru/'
+HOME_PATH = 'E:/yoga/'
 video_path = HOME_PATH+'VIDEO/crop/'#'RobustVideoMatting-master/RobustVideoMatting-master/output/'
 data_path = HOME_PATH+'yoga-pose-classification/'
 
@@ -50,14 +50,14 @@ for video in videos:
             pose = rows.iloc[index, 1]
             # print(pose)
             
-            if pose ==1:    output_frame_path = f'{OUT_PATH}mountain pose/{str(v_num)}/'
-            elif pose ==2:  output_frame_path = f'{OUT_PATH}raised hands pose/{str(v_num)}/'
-            elif pose ==3:  output_frame_path = f'{OUT_PATH}standing forward bend/{str(v_num)}/'
-            elif pose==4:   output_frame_path = f'{OUT_PATH}half standing forward bend/{str(v_num)}/'
-            elif pose==5:   output_frame_path = f'{OUT_PATH}plank/{str(v_num)}/'
-            elif pose==6:   output_frame_path = f'{OUT_PATH}four-limbed staff pose/{str(v_num)}/'
-            elif pose==7:   output_frame_path = f'{OUT_PATH}upward facing dog/{str(v_num)}/'
-            elif pose==8:   output_frame_path = f'{OUT_PATH}downward facing dog/{str(v_num)}/'
+            if pose ==1:    output_frame_path = f'1.mountain pose/{v_num}/'
+            elif pose ==2:  output_frame_path = f'2.raised hands pose/{v_num}/'
+            elif pose ==3:  output_frame_path = f'3.standing forward bend/{v_num}/'
+            elif pose==4:   output_frame_path = f'4.half standing forward bend/{v_num}/'
+            elif pose==5:   output_frame_path = f'5.plank/{v_num}/'
+            elif pose==6:   output_frame_path = f'6.four-limbed staff pose/{v_num}/'
+            elif pose==7:   output_frame_path = f'7.upward facing dog/{v_num}/'
+            elif pose==8:   output_frame_path = f'8.downward facing dog/{v_num}/'
         
             if count==rows.iloc[index, 3] : 
                 index+=1
@@ -66,10 +66,10 @@ for video in videos:
             if index==12: 
                 print(f'----------finished video {video}----------')
                 break
+            out = os.path.join(OUT_PATH, output_frame_path)
+            check_dir(out)
             
-            check_dir(output_frame_path)
-            
-            cv2.imwrite(f'{output_frame_path}{video}_{count}.png', frame)
+            cv2.imwrite(f'{out}/{video}_{count}.png', frame)
         # print(output_frame_path)
         # breakcvxcvv
         count += 1 

@@ -6,17 +6,18 @@ import argparse
 import os
 import pandas as pd
 import time
-import mediapipe as mp
-import numpy as np
+# import mediapipe as mp
+
 from utils._tool import video_info
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-device = "cpu"
+global device
+device = 'cpu'
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--data_path', type=str, help='video folder path')
-    parser.add_argument('--save_path', type=str, help='save folder path')
-    parser.add_argument('--model', type=str, default='fasterrcnn_resnet50_fpn', help='model name')
+    parser.add_argument('--data_path', default='dataset', type=str, help='video folder path')
+    parser.add_argument('--save_path', default='dataset/OD_dataset/', type=str, help='save folder path')
+    parser.add_argument('--OD_model', type=str, default='fasterrcnn_resnet50_fpn', help='model name')
+    parser.add_argument('--gpu', type=str, default='cuda:1', help='gpu number')
     return parser.parse_args()
 
 # Preprocess input image
@@ -61,6 +62,7 @@ global max_area, selected_box, prevx, prevy
 def visualize_result(frame, predictions, model_name):
 
     global max_area, selected_box, prevx, prevy
+    frame_height, frame_width = frame.shape[:2]
     
     if model_name == 'fasterrcnn_resnet50_fpn':
         for box, label, score in zip(predictions[0]['boxes'], predictions[0]['labels'], predictions[0]['scores']):
@@ -102,10 +104,10 @@ def visualize_result(frame, predictions, model_name):
         # if abs(prevx-center_x) >50 :center_x = prevx
         # if abs(prevy-center_y) >50 :center_y = prevy
         
-        square_x1 = center_x - max_dim // 2 - max_dim // 3
-        square_y1 = center_y - max_dim // 2 - max_dim // 3
-        square_x2 = center_x + max_dim // 2 + max_dim //3
-        square_y2 = center_y + max_dim // 2 + max_dim //3
+        square_x1 = max(0, min(center_x - 3 * max_dim // 4, frame_width))
+        square_y1 = max(0, min(center_y - 3 * max_dim // 4, frame_height))
+        square_x2 = max(0, min(center_x + 3 * max_dim // 4, frame_width))
+        square_y2 = max(0, min(center_y + 3 * max_dim // 4, frame_height))
 
         frame = cv2.rectangle(frame, (square_x1, square_y1), (square_x2, square_y2), (0, 255, 0), 2)
         
@@ -114,22 +116,22 @@ def visualize_result(frame, predictions, model_name):
 
 def video2class(pose, v_num, save_path):
     
-    if pose ==1:    output_frame_path = f'mountain pose/{v_num}/'
-    elif pose ==2:  output_frame_path = f'raised hands pose/{v_num}/'
-    elif pose ==3:  output_frame_path = f'standing forward bend/{v_num}/'
-    elif pose==4:   output_frame_path = f'half standing forward bend/{v_num}/'
-    elif pose==5:   output_frame_path = f'plank/{v_num}/'
-    elif pose==6:   output_frame_path = f'four-limbed staff pose/{v_num}/'
-    elif pose==7:   output_frame_path = f'upward facing dog/{v_num}/'
-    elif pose==8:   output_frame_path = f'downward facing dog/{v_num}/'
+    if pose ==1:    output_frame_path = f'1.mountain pose/{v_num}/'
+    elif pose ==2:  output_frame_path = f'2.raised hands pose/{v_num}/'
+    elif pose ==3:  output_frame_path = f'3.standing forward bend/{v_num}/'
+    elif pose==4:   output_frame_path = f'4.half standing forward bend/{v_num}/'
+    elif pose==5:   output_frame_path = f'5.plank/{v_num}/'
+    elif pose==6:   output_frame_path = f'6.four-limbed staff pose/{v_num}/'
+    elif pose==7:   output_frame_path = f'7.upward facing dog/{v_num}/'
+    elif pose==8:   output_frame_path = f'8.downward facing dog/{v_num}/'
     
     out = os.path.join(save_path, output_frame_path)
     os.makedirs(out, exist_ok=True)
     return out
 
-def main():
+def whole_video():
+
     args = parse_args()
-    
     
     home_path = 'C:/Users/VIP/Desktop/yuru/yoga/'
     data_path = os.path.join(home_path, args.data_path)
@@ -143,17 +145,24 @@ def main():
 
     video_files = [f for f in os.listdir(data_path) if f.endswith('.MP4')]
 
-    labels=['downward facing dog', 'four-limbed staff pose', 'half standing forward bend', 'mountain pose', 'plank', 'raised hands pose', 'standing forward bend', 'upward facing dog']
+    labels=['1.mountain pose', '2.raised hands pose', '3.standing forward bend', '4.half standing forward bend', '5.plank', '6.four-limbed staff pose', '7.upward facing dog', '8.downward facing dog']
     for la in labels: os.makedirs(os.path.join(home_path, args.save_path, la), exist_ok=True)
     
     df = pd.read_excel(home_path+'yoga-pose-classification/movement_frames_info.xlsx', sheet_name='train')
     
     start_time = time.time()
-    if args.model == 'fasterrcnn_resnet50_fpn':
+    global device
+    if args.OD_model == 'fasterrcnn_resnet50_fpn':
+        device = torch.device(args.gpu if torch.cuda.is_available() else "cpu")
+        args.save_path = 'dataset/OD_dataset/poses'
         model = fasterrcnn_resnet50_fpn(pretrained=True).to(device)
         model.eval()  # Set the model to evaluation mode
-    elif args.model == 'mediapipe':
+        print('Load model: fasterrcnn_resnet50_fpn')
+    elif args.OD_model == 'mediapipe':
+        device = args.gpu
+        args.save_path = 'ydataset/mp_dataset/poses'
         model = mp.solutions.pose.Pose(static_image_mode=False, min_detection_confidence=0.5, min_tracking_confidence=0.5)
+        print('Load model: mediapipe')
     else:
         print(f"Error: Invalid model name {args.model}")
         return
@@ -161,10 +170,14 @@ def main():
     
     global max_area, selected_box, prevx, prevy
     v_num = 0
+ 
     for video_file in video_files:
-        max_area, prevx, prevy = 0
+        print(f'----------processing video {video_file}----------')
+        max_area, prevx, prevy = 0, 0, 0
         selected_box = None 
+        
         cap = cv2.VideoCapture(os.path.join(data_path, video_file))
+        
         if not cap.isOpened():
             print(f"Error: Could not open video {video_file}")
             continue
@@ -172,13 +185,17 @@ def main():
         video_name = os.path.splitext(video_file)[0]
         rows = df.loc[df['VIDEO_name'] == video_name]
         rows.reset_index(drop=True)
+        # print(f'Rows extracted for video: {video_name}')
         
         fps, width, height = video_info(cap)
+        print(f'Video info - FPS: {fps}, Width: {width}, Height: {height}')
         out = cv2.VideoWriter(os.path.join(save_path, video_file), cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
    
         # Process each frame of the video
         frame_count = 0
-        
+        count = 0
+        index = 0
+        predictions = None
         while cap.isOpened():
             ret, frame = cap.read()
             if not ret:
@@ -186,7 +203,7 @@ def main():
                 break
 
             # Perform object detection on the frame
-            if frame_count % 15 == 0:
+            if frame_count % 10 == 0:
 
                 if args.model == 'fasterrcnn_resnet50_fpn':
                     predictions = detect_objects(model, frame)
@@ -206,28 +223,31 @@ def main():
 
             # Visualize the results
             frame_with_boxes, box = visualize_result(frame, predictions, args.model)
-            
+            v_path = os.path.join(save_path, video_name)
+            # print(v_path)
+            # os.makedirs(v_path, exist_ok=True)
+            # cv2.imwrite(os.path.join(v_path, f'{video_name}_{frame_count}.png'), frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])])
             # svae the cropped frame
-            # if box is not None:  # Check if frame_with_boxes is not None
-            #     if count >= rows.iloc[index, 2] and count <= rows.iloc[index, 3]:
-            #         pose = rows.iloc[index, 1]
-            #         class_path = video2class(pose, v_num, save_path)
-            #         if count == rows.iloc[index, 3]:
-            #             index += 1
-            #             v_num += 1
-            #             print(f'Finished video {video_name}, pose={pose}')
-            #         if index == 12: 
-            #             break
+            if box is not None:  # Check if frame_with_boxes is not None
+                if frame_count >= rows.iloc[index, 2] and frame_count <= rows.iloc[index, 3]:
+                    pose = rows.iloc[index, 1]
+                    class_path = video2class(pose, v_num, save_path)
+                    if frame_count == rows.iloc[index, 3]:
+                        index += 1
+                        v_num += 1
+                        print(f'Finished video {video_name}, pose={pose}')
+                    if index == 12: 
+                        break
 
-            #         cropped_frame = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
-            #         # print(box)
-            #         # print(cropped_frame)
-            #         if cropped_frame is not None:  # Check if cropped_frame is not None
-            #             # print('here')
-            #             if cropped_frame.shape[0] > 0 and cropped_frame.shape[1] > 0:
-            #                 path = os.path.join(class_path, f'{video_name}_{count}.png')
-            #                 # print(path)
-            #                 cv2.imwrite(path, cropped_frame)
+                    cropped_frame = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
+                    # print(box)
+                    # print(cropped_frame)
+                    if cropped_frame is not None:  # Check if cropped_frame is not None
+                        # print('here')
+                        if cropped_frame.shape[0] > 0 and cropped_frame.shape[1] > 0:
+                            path = os.path.join(class_path, f'{video_name}_{frame_count}.png')
+                            # print(path)
+                            cv2.imwrite(path, cropped_frame)
             
             
             out.write(frame_with_boxes)
@@ -245,8 +265,91 @@ def main():
         end_time = time.time()
         print(f'----------finished video {video_name}----------{end_time-start_time:.2f} seconds')
         print()
-        frame_count+=1
+        
     cv2.destroyAllWindows()
 
+
+def trimmed_video():
+    
+    args = parse_args()
+    
+    home_path = ''
+    data_path = os.path.join(home_path, args.data_path)
+    save_path = os.path.join(home_path, args.save_path)
+    
+    if args.data_path is None or not os.path.exists(data_path):
+        print("Please provide a valid data path.")
+        print(data_path)
+        return
+    os.makedirs((save_path), exist_ok=True)
+
+    labels=['1.mountain pose', '2.raised hands pose', '3.standing forward bend', '4.half standing forward bend', '5.plank', '6.four-limbed staff pose', '7.upward facing dog', '8.downward facing dog']
+    for la in labels: os.makedirs(os.path.join(save_path, la), exist_ok=True)
+
+    model = fasterrcnn_resnet50_fpn(pretrained=True).to(device)
+    model.eval()  # Set the model to evaluation mode
+    print('Load model: fasterrcnn_resnet50_fpn')
+
+
+    for pose in labels:
+        pose_path = os.path.join(data_path, pose)
+        print(f'----------processing pose {pose}----------')
+
+        videos = [f for f in os.listdir(pose_path) if f.endswith('.mp4')]
+        for video in videos:
+
+            global max_area, selected_box, prevx, prevy
+            max_area, prevx, prevy = 0, 0, 0
+            selected_box = None 
+
+            cap = cv2.VideoCapture(os.path.join(pose_path, video))
+            if not cap.isOpened():
+                print(f"Error: Could not open video {video}")
+                continue
+
+            video_name = os.path.splitext(video)[0]
+            fps, width, height = video_info(cap)
+            print(f'Video info - FPS: {fps}, Width: {width}, Height: {height}')
+            out = cv2.VideoWriter(os.path.join(save_path, video), cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height))
+
+            # Process each frame of the video
+            frame_count = 0
+            index = 0
+            predictions = None
+
+            while cap.isOpened():
+                ret, frame = cap.read()
+                if not ret:
+                    print("Ignoring empty camera frame.")
+                    break
+
+                # Perform object detection on the frame
+                if frame_count % 10 == 0:
+                    predictions = detect_objects(model, frame)
+
+                if predictions is None: continue
+
+                # Visualize the results
+                frame_with_boxes, box = visualize_result(frame, predictions, 'fasterrcnn_resnet50_fpn')
+                if box is not None: # Check if frame_with_boxes is not None
+                    cropped_frame = frame[int(box[1]):int(box[3]), int(box[0]):int(box[2])]
+                    if cropped_frame is not None:       # Check if cropped_frame is not None
+                        if cropped_frame.shape[0] > 0 and cropped_frame.shape[1] > 0:
+                            path = os.path.join(save_path, pose, f'{video_name}_{frame_count}.png')
+                            cv2.imwrite(path, cropped_frame)
+
+                out.write(frame_with_boxes)
+                cv2.imshow('Object Detection', frame_with_boxes)
+
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                frame_count+=1
+            cap.release()
+            out.release()
+            print(f'----------finished video {video_name}----------')
+
+        cv2.destroyAllWindows()
+    
+
 if __name__ == '__main__':
-    main()
+    trimmed_video()
